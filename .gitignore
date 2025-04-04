@@ -1,0 +1,28 @@
+# Other
+*:Zone.Identifier
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build directories
+build/
+Debug/
+Release/
