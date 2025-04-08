@@ -9,7 +9,7 @@ CC=gcc
 COMMON_LFLAGS=-lstdc++
 COMMON_CFLAGS=-I./../
 
-# CRYPTO=mbedtls
+CRYPTO=mbedtls
 MBEDTLS_CFLAGS=-I./mbedtls/include/ -D MBEDTLS
 MBEDTLS_LFLAGS=-lmbedtls -lmbedcrypto -lmbedx509 -L./mbedtls/library/
 

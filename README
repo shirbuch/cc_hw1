@@ -1,3 +1,6 @@
+Setup:
+sudo apt install libmbedtls-dev
+
 Run tests:
 cd crypto_test
 make clean

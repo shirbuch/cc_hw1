@@ -24,9 +24,9 @@
 
 
 static constexpr size_t PEM_BUFFER_SIZE_BYTES	= 10000;
-static constexpr size_t HASH_SIZE_BYTES			= ?;
-static constexpr size_t IV_SIZE_BYTES			= ?;
-static constexpr size_t GMAC_SIZE_BYTES			= ?;
+static constexpr size_t HASH_SIZE_BYTES			= 48;
+static constexpr size_t IV_SIZE_BYTES			= 12;
+static constexpr size_t GMAC_SIZE_BYTES			= 16;
 
 
 int getRandom(void* contextData, BYTE* output, size_t len)
@@ -171,7 +171,7 @@ bool CryptoWrapper::readRSAKeyFromFile(IN const char* keyFilename, IN const char
 		return false;
 	}
 
-	int res = mbedtls_pk_parse_key(newContext, bufferSmartPtr, bufferSmartPtr.size(), (const BYTE*)filePassword, strnlen_s(filePassword, MAX_PASSWORD_SIZE_BYTES), getRandom, NULL);
+	int res = mbedtls_pk_parse_key(newContext, bufferSmartPtr, bufferSmartPtr.size(), (const BYTE*)filePassword, strnlen_s(filePassword, MAX_PASSWORD_SIZE_BYTES)); //!!!, getRandom, NULL);
 	if (res != 0)
 	{
 		printf("Error during mbedtls_pk_parse_key()\n");
