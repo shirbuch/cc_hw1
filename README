@@ -1,0 +1,5 @@
+Run tests:
+cd crypto_test
+make clean
+make
+./crypto_test

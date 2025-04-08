@@ -1,5 +1,6 @@
 # Other
 *:Zone.Identifier
+crypto_test/crypto_test
 
 # Prerequisites
 *.d
