@@ -1,6 +1,7 @@
 # Other
 *:Zone.Identifier
 crypto_test/crypto_test
+.vscode/
 
 # Prerequisites
 *.d
