@@ -125,8 +125,55 @@ bool CryptoWrapper::encryptAES_GCM256(IN const BYTE* key, IN size_t keySizeBytes
 		return false;
 	}
 
-	// ...
-	return false;
+
+	// Generate random IV
+	if (!Utils::generateRandom(iv, IV_SIZE_BYTES))
+	{
+		printf("Error generating random IV!\n");
+		return false;
+	}
+	
+	// Set up GCM context
+	mbedtls_gcm_context gcm;
+	mbedtls_gcm_init(&gcm);
+	
+	int result = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key, keySizeBytes * 8);
+	if (result != 0)
+	{
+		printf("mbedtls_gcm_setkey failed with error code %d!\n", result);
+		mbedtls_gcm_free(&gcm);
+		return false;
+	}
+	
+	// Copy IV to the beginning of the ciphertext buffer
+	memcpy(ciphertextBuffer, iv, IV_SIZE_BYTES);
+	
+	// Encrypt and authenticate
+	result = mbedtls_gcm_crypt_and_tag(&gcm, 
+		MBEDTLS_GCM_ENCRYPT,                              // mode
+		plaintextSizeBytes,                               // length of input data
+		iv, IV_SIZE_BYTES,                                // IV and its size
+		aad, aadSizeBytes,                                // additional data and its size
+		plaintext,                                        // input data
+		ciphertextBuffer + IV_SIZE_BYTES,                 // output data
+		GMAC_SIZE_BYTES,                                  // size of the tag
+		ciphertextBuffer + IV_SIZE_BYTES + plaintextSizeBytes // tag
+	);
+	
+	mbedtls_gcm_free(&gcm);
+	
+	if (result != 0)
+	{
+		printf("mbedtls_gcm_crypt_and_tag failed with error code %d!\n", result);
+		return false;
+	}
+	
+	if (pCiphertextSizeBytes != NULL)
+	{
+		*pCiphertextSizeBytes = ciphertextSizeBytes;
+	}
+	
+	return true;
 }
 
 
@@ -160,14 +207,46 @@ bool CryptoWrapper::decryptAES_GCM256(IN const BYTE* key, IN size_t keySizeBytes
 		return false;
 	}
 
-	// ...
+
+	// Extract IV from the beginning of the ciphertext
+	const BYTE* iv = ciphertext;
 	
+	// Set up GCM context
+	mbedtls_gcm_context gcm;
+	mbedtls_gcm_init(&gcm);
+	
+	int result = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key, keySizeBytes * 8);
+	if (result != 0)
+	{
+		printf("mbedtls_gcm_setkey failed with error code %d!\n", result);
+		mbedtls_gcm_free(&gcm);
+		return false;
+	}
+	
+	// Decrypt and verify
+	result = mbedtls_gcm_auth_decrypt(&gcm, 
+		plaintextSizeBytes,                                     // length of input data
+		iv, IV_SIZE_BYTES,                                      // IV and its size
+		aad, aadSizeBytes,                                      // additional data and its size
+		ciphertext + ciphertextSizeBytes - GMAC_SIZE_BYTES,     // tag
+		GMAC_SIZE_BYTES,                                        // size of the tag
+		ciphertext + IV_SIZE_BYTES,                             // input data
+		plaintextBuffer                                         // output data
+	);
+	
+	mbedtls_gcm_free(&gcm);
+	
+	if (result != 0)
+	{
+		printf("mbedtls_gcm_auth_decrypt failed with error code %d!\n", result);
+		return false;
+	}
 
 	if (pPlaintextSizeBytes != NULL)
 	{
 		*pPlaintextSizeBytes = plaintextSizeBytes;
 	}
-	return false;
+	return true;
 }
 
 
