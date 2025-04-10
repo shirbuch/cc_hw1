@@ -65,8 +65,19 @@ bool CryptoWrapper::deriveKey_HKDF_SHA256(IN const BYTE* salt, IN size_t saltSiz
 	OUT BYTE* outputBuffer, IN size_t outputBufferSizeBytes)
 {
 	const mbedtls_md_info_t* mdSHA256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-	// ...
-	return false;
+	int result = mbedtls_hkdf(mdSHA256, 
+		salt, saltSizeBytes,
+		secretMaterial, secretMaterialSizeBytes,
+		context, contextSizeBytes,
+		outputBuffer, outputBufferSizeBytes);
+		
+	if (result != 0)
+	{
+		printf("mbedtls_hkdf failed with error code %d!\n", result);
+		return false;
+	}
+	
+	return true;
 }
 
 
