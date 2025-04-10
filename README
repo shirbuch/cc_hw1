@@ -2,6 +2,8 @@ Setup:
 sudo apt install libmbedtls-dev
 
 Run tests:
+(make -C crypto_test clean && make -C crypto_test) && make clean && make && echo ===== START ===== && ./crypto_test/crypto_test
+
 (make -C crypto_test clean && make -C crypto_test) && make clean && make
 ./crypto_test/crypto_test
 

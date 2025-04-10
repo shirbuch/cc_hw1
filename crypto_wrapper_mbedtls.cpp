@@ -48,8 +48,14 @@ bool CryptoWrapper::hmac_SHA256(IN const BYTE* key, IN size_t keySizeBytes, IN c
 		return false;
 	}
 
-	// ...
-	return false;
+	int result = mbedtls_md_hmac(md_infoSha256, key, keySizeBytes, message, messageSizeBytes, macBuffer);
+	if (result != 0)
+	{
+		printf("mbedtls_md_hmac failed with error code %d!\n", result);
+		return false;
+	}
+	
+	return true;
 }
 
 
