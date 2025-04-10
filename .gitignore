@@ -2,6 +2,7 @@
 *:Zone.Identifier
 crypto_test/crypto_test
 .vscode/
+udp_party
 
 # Prerequisites
 *.d
