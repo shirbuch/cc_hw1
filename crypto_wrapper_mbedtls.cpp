@@ -24,7 +24,7 @@
 
 
 static constexpr size_t PEM_BUFFER_SIZE_BYTES	= 10000;
-static constexpr size_t HASH_SIZE_BYTES			= 48;
+static constexpr size_t HASH_SIZE_BYTES			= 32;
 static constexpr size_t IV_SIZE_BYTES			= 12;
 static constexpr size_t GMAC_SIZE_BYTES			= 16;
 
@@ -285,27 +285,59 @@ bool CryptoWrapper::readRSAKeyFromFile(IN const char* keyFilename, IN const char
 
 bool CryptoWrapper::signMessageRsa3072Pss(IN const BYTE* message, IN size_t messageSizeBytes, IN KeypairContext* privateKeyContext, OUT BYTE* signatureBuffer, IN size_t signatureBufferSizeBytes)
 {
-	if (signatureBufferSizeBytes != SIGNATURE_SIZE_BYTES)
-	{
-		printf("Signature buffer size is wrong!\n");
-		return false;
-	}
+    if (signatureBufferSizeBytes != SIGNATURE_SIZE_BYTES)
+    {
+        printf("Signature buffer size is wrong!\n");
+        return false;
+    }
 
-	// ...
-	return false;
+    // Create a message digest
+    unsigned char hash[HASH_SIZE_BYTES]; // SHA-256 hash size
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    if (mbedtls_md(md_info, message, messageSizeBytes, hash) != 0)
+    {
+        return false;
+    }
+
+    // Sign the digest
+    size_t sig_len = signatureBufferSizeBytes;
+    int ret = mbedtls_pk_sign(privateKeyContext, MBEDTLS_MD_SHA256, 
+                             hash, HASH_SIZE_BYTES, 
+                             signatureBuffer, &sig_len, 
+                             getRandom, NULL);
+
+    return (ret == 0);
 }
 
 
 bool CryptoWrapper::verifyMessageRsa3072Pss(IN const BYTE* message, IN size_t messageSizeBytes, IN KeypairContext* publicKeyContext, IN const BYTE* signature, IN size_t signatureSizeBytes, OUT bool* result)
 {
-	if (signatureSizeBytes != SIGNATURE_SIZE_BYTES)
-	{
-		printf("Signature size is wrong!\n");
-		return false;
-	}
+    if (signatureSizeBytes != SIGNATURE_SIZE_BYTES)
+    {
+        printf("Signature size is wrong!\n");
+        return false;
+    }
 
-	// ...
-	return false;
+    // Set default result
+    *result = false;
+    
+    // Create a message digest
+    unsigned char hash[HASH_SIZE_BYTES]; // SHA-256 hash size
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    if (mbedtls_md(md_info, message, messageSizeBytes, hash) != 0)
+    {
+        return false;
+    }
+
+    // Verify the signature
+    int ret = mbedtls_pk_verify(publicKeyContext, MBEDTLS_MD_SHA256,
+                               hash, HASH_SIZE_BYTES,
+                               signature, signatureSizeBytes);
+    
+    // Set the result based on verification
+    *result = (ret == 0);
+    
+    return true;
 }
 
 
