@@ -416,18 +416,64 @@ bool CryptoWrapper::startDh(OUT DhContext** pDhContext, OUT BYTE* publicKeyBuffe
 	// select the pre-agreed generator element of the finite group
 	mbedtls_mpi_read_binary(&G, gBin, sizeof(gBin));
 
+	// Set the DH group parameters
+	int result = mbedtls_dhm_set_group(dhContext, &P, &G);
+	if (result != 0)
+	{
+		printf("Error setting DH group parameters: %d\n", result);
+		mbedtls_mpi_free(&P);
+		mbedtls_mpi_free(&G);
+		cleanDhContext(&dhContext);
+		return false;
+	}
 
-	// ...
+	// Generate our key pair
+	result = mbedtls_dhm_make_public(dhContext, (int)publicKeyBufferSizeBytes, publicKeyBuffer, publicKeyBufferSizeBytes, getRandom, NULL);
+	if (result != 0)
+	{
+		printf("Error generating DH public key: %d\n", result);
+		mbedtls_mpi_free(&P);
+		mbedtls_mpi_free(&G);
+		cleanDhContext(&dhContext);
+		return false;
+	}
 
-	cleanDhContext(&dhContext);
-	return false;
+	mbedtls_mpi_free(&P);
+	mbedtls_mpi_free(&G);
+	
+	*pDhContext = dhContext;
+	return true;
 }
 
 
 bool CryptoWrapper::getDhSharedSecret(INOUT DhContext* dhContext, IN const BYTE* peerPublicKey, IN size_t peerPublicKeySizeBytes, OUT BYTE* sharedSecretBuffer, IN size_t sharedSecretBufferSizeBytes)
 {
-	// ...
-	return false;
+	size_t outputLen = 0;
+	
+	// Read peer's public key
+	int result = mbedtls_dhm_read_public(dhContext, peerPublicKey, peerPublicKeySizeBytes);
+	if (result != 0)
+	{
+		printf("Error reading peer's DH public key: %d\n", result);
+		return false;
+	}
+	
+	// Calculate the shared secret
+	result = mbedtls_dhm_calc_secret(dhContext, sharedSecretBuffer, sharedSecretBufferSizeBytes, &outputLen, getRandom, NULL);
+	if (result != 0)
+	{
+		printf("Error calculating DH shared secret: %d\n", result);
+		return false;
+	}
+	
+	// Make sure the output is the correct size
+	if (outputLen != sharedSecretBufferSizeBytes)
+	{
+		printf("Unexpected shared secret size. Expected %zu, got %zu\n", sharedSecretBufferSizeBytes, outputLen);
+		return false;
+	}
+	
+	return true;
 }
 
 
