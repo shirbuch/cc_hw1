@@ -24,7 +24,7 @@
 
 
 static constexpr size_t PEM_BUFFER_SIZE_BYTES	= 10000;
-static constexpr size_t HASH_SIZE_BYTES			= 32;
+static constexpr size_t HASH_SIZE_BYTES			= 48;
 static constexpr size_t IV_SIZE_BYTES			= 12;
 static constexpr size_t GMAC_SIZE_BYTES			= 16;
 
@@ -99,7 +99,7 @@ bool CryptoWrapper::encryptAES_GCM256(IN const BYTE* key, IN size_t keySizeBytes
 	OUT BYTE* ciphertextBuffer, IN size_t ciphertextBufferSizeBytes, OUT size_t* pCiphertextSizeBytes)
 {
 	BYTE iv[IV_SIZE_BYTES];
-	BYTE mac[GMAC_SIZE_BYTES];
+	//BYTE mac[GMAC_SIZE_BYTES];
 	size_t ciphertextSizeBytes = getCiphertextSizeAES_GCM256(plaintextSizeBytes);
 	
 	if ((plaintext == NULL || plaintextSizeBytes == 0) && (aad == NULL || aadSizeBytes == 0))
@@ -137,7 +137,7 @@ bool CryptoWrapper::encryptAES_GCM256(IN const BYTE* key, IN size_t keySizeBytes
 	mbedtls_gcm_context gcm;
 	mbedtls_gcm_init(&gcm);
 	
-	int result = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key, keySizeBytes * 8);
+	int result = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)(keySizeBytes * 8));
 	if (result != 0)
 	{
 		printf("mbedtls_gcm_setkey failed with error code %d!\n", result);
@@ -215,7 +215,7 @@ bool CryptoWrapper::decryptAES_GCM256(IN const BYTE* key, IN size_t keySizeBytes
 	mbedtls_gcm_context gcm;
 	mbedtls_gcm_init(&gcm);
 	
-	int result = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key, keySizeBytes * 8);
+	int result = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)(keySizeBytes * 8));
 	if (result != 0)
 	{
 		printf("mbedtls_gcm_setkey failed with error code %d!\n", result);
@@ -292,21 +292,25 @@ bool CryptoWrapper::signMessageRsa3072Pss(IN const BYTE* message, IN size_t mess
     }
 
     // Create a message digest
-    unsigned char hash[HASH_SIZE_BYTES]; // SHA-256 hash size
-    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    unsigned char hash[HASH_SIZE_BYTES]; // SHA-384 hash size
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA384);
     if (mbedtls_md(md_info, message, messageSizeBytes, hash) != 0)
     {
         return false;
     }
 
-    // Sign the digest
-    size_t sig_len = signatureBufferSizeBytes;
-    int ret = mbedtls_pk_sign(privateKeyContext, MBEDTLS_MD_SHA256, 
-                             hash, HASH_SIZE_BYTES, 
-                             signatureBuffer, &sig_len, 
-                             getRandom, NULL);
+	mbedtls_rsa_context* rsaContext = mbedtls_pk_rsa(*privateKeyContext);
+	mbedtls_rsa_set_padding(rsaContext, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA384);
 
-    return (ret == 0);
+	if (mbedtls_rsa_rsassa_pss_sign(rsaContext, getRandom, NULL, MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_SHA384, HASH_SIZE_BYTES, hash, signatureBuffer) == 0)
+	{
+			return true;
+	}
+	else
+	{
+			printf("Error signing a message!\n");
+			return false;
+	}
 }
 
 
@@ -322,21 +326,32 @@ bool CryptoWrapper::verifyMessageRsa3072Pss(IN const BYTE* message, IN size_t me
     *result = false;
     
     // Create a message digest
-    unsigned char hash[HASH_SIZE_BYTES]; // SHA-256 hash size
-    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    unsigned char hash[HASH_SIZE_BYTES]; // SHA-384 hash size
+    const mbedtls_md_info_t* md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA384);
     if (mbedtls_md(md_info, message, messageSizeBytes, hash) != 0)
     {
         return false;
     }
 
-    // Verify the signature
-    int ret = mbedtls_pk_verify(publicKeyContext, MBEDTLS_MD_SHA256,
-                               hash, HASH_SIZE_BYTES,
-                               signature, signatureSizeBytes);
-    
-    // Set the result based on verification
-    *result = (ret == 0);
-    
+	mbedtls_rsa_context* rsaContext = mbedtls_pk_rsa(*publicKeyContext);
+        
+	mbedtls_rsa_set_padding(rsaContext, MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA384);
+	
+	int res = mbedtls_rsa_rsassa_pss_verify(rsaContext, getRandom, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_SHA384, HASH_SIZE_BYTES, hash, signature);
+	if (res == MBEDTLS_ERR_RSA_VERIFY_FAILED)
+	{
+			*result = false;
+	}
+	else if (res != 0)
+	{
+			printf("Error verifying a message signature!\n");
+			return false;
+	}
+	else
+	{
+			*result = true;
+	}
+	
     return true;
 }
 
