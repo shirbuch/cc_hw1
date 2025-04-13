@@ -510,7 +510,42 @@ bool CryptoWrapper::checkCertificate(IN const BYTE* cACcertBuffer, IN size_t cAC
 		return false;
 	}
 
-	// ...
+	// Verify the certificate against the CA
+	res = mbedtls_x509_crt_verify(&clicert, &cacert, NULL, NULL, &flags, NULL, NULL);
+	
+	// If certificate verification passed, check the subject Common Name
+	if (res == 0)
+	{
+		// Check if the Common Name matches the expected value
+		char subject_cn[256];
+		if (mbedtls_x509_dn_gets(subject_cn, sizeof(subject_cn), &clicert.subject) > 0)
+		{
+			// Extract the CN field from the subject string
+			char* cn_field = strstr(subject_cn, "CN=");
+			if (cn_field != NULL)
+			{
+				cn_field += 3; // Skip "CN="
+				
+				// Check if CN matches expected value
+				// If expectedCN is contained within the CN field
+				if (strstr(cn_field, expectedCN) == NULL)
+				{
+					printf("Certificate CN doesn't match expected CN\n");
+					res = -1; // Indicate failure
+				}
+			}
+			else
+			{
+				printf("CN field not found in certificate subject\n");
+				res = -1; // Indicate failure
+			}
+		}
+		else
+		{
+			printf("Error extracting subject from certificate\n");
+			res = -1; // Indicate failure
+		}
+	}
 
 	mbedtls_x509_crt_free(&cacert);
 	mbedtls_x509_crt_free(&clicert);
