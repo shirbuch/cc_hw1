@@ -1,12 +1,18 @@
 Setup:
 sudo apt install libmbedtls-dev
 
+=== Tests ===
 Run tests:
 (make -C crypto_test clean && make -C crypto_test) && make clean && make && echo ===== START ===== && ./crypto_test/crypto_test
 
+Seperated Compile and run:
 (make -C crypto_test clean && make -C crypto_test) && make clean && make
 ./crypto_test/crypto_test
 
+=== Client Server ===
 Run Client Server:
 ./udp_party -port 60000 -key alice.key -pwd alice -cert alice.crt -root rootCA.crt -peer Bob.com
 ./udp_party -ip 127.0.0.1 -port 60000 -key bob.key -pwd bobkey -cert bob.crt -root rootCA.crt -peer Alice.com
+
+Compilation:
+make clean && make
