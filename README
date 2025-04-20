@@ -37,5 +37,4 @@ make clean && make
 
 
 === Todo ===
-1. Fix salt to be non-const
-2. session: deriveSessionKey
+1. session: deriveSessionKey

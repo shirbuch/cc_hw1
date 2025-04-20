@@ -180,13 +180,7 @@ void Session::deriveMacKey(BYTE* macKeyBuffer)
     }
     
     BYTE salt[32];
-    memset(salt, 2, sizeof(salt));
-    // todo: same salt in both sides
-	// if (!Utils::generateRandom(salt, 32))
-    // {
-    //     printf("deriveMacKey failed - Error generating random salt\n");
-    //     cleanDhData();
-    // }
+    memset(salt, _sessionId, sizeof(salt));
 
 	if (!CryptoWrapper::deriveKey_HKDF_SHA256(salt, 32, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES, NULL, 0, macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES))
     {
