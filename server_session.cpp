@@ -115,7 +115,7 @@ Session::ReceiveResult ServerSession::receiveMessage(BYTE* buffer, size_t buffer
 
         // Prepare DH message 2
         BYTE* pPayload = buffer + sizeof(MessageHeader);
-        memcpy_s(&(newSession->_remoteDhPublicKeyBuffer), DH_KEY_SIZE_BYTES, &pPayload, DH_KEY_SIZE_BYTES);
+        memcpy_s(&(newSession->_remoteDhPublicKeyBuffer), DH_KEY_SIZE_BYTES, pPayload, DH_KEY_SIZE_BYTES);
         ByteSmartPtr message2 = newSession->prepareSigmaMessage(2);
         if (message2 == NULL)
         {

@@ -46,7 +46,7 @@ ClientSession::ClientSession(unsigned int remotePort, const char* remoteIpAddres
     {
         _state = UNINITIALIZED_SESSION_STATE;
         cleanDhData();
-        printf("Session crypto error - verifySigmaMessage(2), closing session %d\n", _sessionId);
+        printf("Session crypto error - verifySigmaMessage (2), closing session %d\n", _sessionId);
         return;
     }
 

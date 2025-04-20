@@ -180,11 +180,14 @@ void Session::deriveMacKey(BYTE* macKeyBuffer)
     }
     
     BYTE salt[32];
-	if (!Utils::generateRandom(salt, 32))
-    {
-        printf("deriveMacKey failed - Error generating random salt\n");
-        cleanDhData();
-    }
+    memset(salt, 2, sizeof(salt));
+    // todo: same salt in both sides
+	// if (!Utils::generateRandom(salt, 32))
+    // {
+    //     printf("deriveMacKey failed - Error generating random salt\n");
+    //     cleanDhData();
+    // }
+
 	if (!CryptoWrapper::deriveKey_HKDF_SHA256(salt, 32, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES, NULL, 0, macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES))
     {
         printf("deriveMacKey failed - Error deriving MAC key\n");
@@ -240,7 +243,7 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
             return NULL;
         }
     }
-
+    
     // get my certificate
     ByteSmartPtr certBufferSmartPtr = Utils::readBufferFromFile(_localCertFilename);
     if (certBufferSmartPtr == NULL)
@@ -275,12 +278,14 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
 
     // Now we will calculate the MAC over my certificate
     BYTE macKeyBuffer[SYMMETRIC_KEY_SIZE_BYTES];
+    // todo: same salt in both sides
     deriveMacKey(macKeyBuffer);
     BYTE calculatedMac[HMAC_SIZE_BYTES];
 	if (!CryptoWrapper::hmac_SHA256((const BYTE*)macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES, (BYTE*)certBufferSmartPtr, certBufferSmartPtr.size(), calculatedMac, HMAC_SIZE_BYTES))
     {
         printf("prepareDhMessage #%d failed - Error calculating MAC\n", messageType);
         cleanDhData();
+        Utils::secureCleanMemory(macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES);
         return NULL;
     }
 	Utils::secureCleanMemory(macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES);
@@ -317,7 +322,7 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
     const BYTE* inRemoteDhPublicKeyBuffer = parts[0].part;
     const MessagePart inCertBufferSmartPtrPart = parts[1];
     const MessagePart inSignaturePart = parts[2];
-    const BYTE* inCalculatedMac = parts[3].part;
+    const MessagePart inCalculatedMacPart = parts[3];
 
     // we will now verify if the received certificate belongs to the expected remote entity
 	ByteSmartPtr cAcertBufferSmartPtr = Utils::readBufferFromFile(_rootCaCertFilename);
@@ -332,6 +337,18 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
         return false;
     }
 
+    // Now we will calculate the shared secret
+    if (messageType == 2)
+    {
+        memcpy_s(_remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, inRemoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES);
+        if (!CryptoWrapper::getDhSharedSecret(_dhContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES))
+        {
+            printf("prepareDhMessage #%d - Error during getDhSharedSecret\n", messageType);
+            cleanDhData();
+            return false;
+        }
+    }
+    
     // now we will verify if the signature over the concatenated public keys is ok
     /// Get Public key from certificate
     KeypairContext* publicKeyContext = NULL;
@@ -343,8 +360,8 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
         return false;
     }
     // todo: verify that public key in certificate is the same as the one we received
-    memcpy_s(&_remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, &inRemoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES);
     
+    // Swiched placing of keys in the concatenated buffer to match the order of signing
     ByteSmartPtr conacatenatedPublicKeysSmartPtr = concat(2, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, _localDhPublicKeyBuffer, DH_KEY_SIZE_BYTES);
     if (conacatenatedPublicKeysSmartPtr == NULL)
     {
@@ -364,25 +381,34 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
     }
     CryptoWrapper::cleanKeyContext(&publicKeyContext);
 
-    // Now we will calculate the shared secret
-    if (messageType == 2)
+    // Now we will verify the MAC over the certificate
+    BYTE macKeyBuffer[SYMMETRIC_KEY_SIZE_BYTES];
+    // todo: same salt in both sides
+    deriveMacKey(macKeyBuffer);
+    BYTE calculatedMac[HMAC_SIZE_BYTES];
+	if (!CryptoWrapper::hmac_SHA256((const BYTE*)macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES, inCertBufferSmartPtrPart.part, inCertBufferSmartPtrPart.partSize, calculatedMac, HMAC_SIZE_BYTES))
     {
-        memcpy_s(&_remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, &inRemoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES);
-        if (!CryptoWrapper::getDhSharedSecret(_dhContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES))
-        {
-            printf("prepareDhMessage #%d - Error during getDhSharedSecret\n", messageType);
-            cleanDhData();
-            return false;
-        }
+        printf("prepareDhMessage #%d failed - Error calculating MAC\n", messageType);
+        cleanDhData();
+        Utils::secureCleanMemory(macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES);
+        return NULL;
+    }
+	Utils::secureCleanMemory(macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES);
+    
+    if (inCalculatedMacPart.partSize != HMAC_SIZE_BYTES)
+    {
+        printf("verifySigmaMessage #%d failed - Error MAC size is wrong\n", messageType);
+        cleanDhData();
+        return false;
+    }
+    if (memcmp(calculatedMac, inCalculatedMacPart.part, HMAC_SIZE_BYTES) != 0)
+    {
+        printf("verifySigmaMessage #%d failed - Error verifying MAC\n", messageType);
+        cleanDhData();
+        return false;
     }
 
-    // Now we will verify the MAC over the certificate
-    // ...
-    
-    // todo: deleteme after implementing checks.
     return true;
-    
-    return false;
 }
 
 
