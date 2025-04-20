@@ -113,17 +113,14 @@ Session::ReceiveResult ServerSession::receiveMessage(BYTE* buffer, size_t buffer
         ServerSession* newSession = new ServerSession(*this, _nextSessionId, 1, 0, HELLO_SESSION_MESSAGE);
         memcpy_s(&(newSession->_remoteAddress), sizeof(struct sockaddr_in), &remoteAddr, remoteAddrSize);
 
-        // here we will prepare DH message 2
-        // ...
-        /*
+        // Prepare DH message 2
         ByteSmartPtr message2 = newSession->prepareSigmaMessage(2);
         if (message2 == NULL)
         {
             return RR_FATAL_ERROR;
         }
-		*/
 
-        if (!newSession->sendMessageInternal(HELLO_BACK_SESSION_MESSAGE, NULL, 0))
+        if (!newSession->sendMessageInternal(HELLO_BACK_SESSION_MESSAGE, message2, message2.size()))
         {
             printf("Error during receive - error sending response to new session\n");
             newSession->cleanDhData();

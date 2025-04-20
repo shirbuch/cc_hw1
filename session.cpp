@@ -202,6 +202,28 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
     // 3: Signature over concatenated public keys with my permanenet private key
     // 4: MAC over my certificate with the shared MAC key
 
+    // Init DH
+    if (messageType == 2)
+    {
+        if (_dhContext != NULL)
+        {
+            printf("prepareDhMessage #%d - Error - DH context is not NULL\n", messageType);
+            cleanDhData();
+            return NULL;
+        }
+        if (!CryptoWrapper::startDh(&_dhContext, _localDhPublicKeyBuffer, DH_KEY_SIZE_BYTES))
+        {
+            printf("prepareDhMessage #%d - Error during startDh\n", messageType);
+            cleanDhData();
+            return NULL;
+        }
+        
+        // todo: deleteme. tmp buffer to return to continue session until fixing next part 
+        BYTE* tmpBuffer = (BYTE*)Utils::allocateBuffer(DH_KEY_SIZE_BYTES);
+        ByteSmartPtr tmpBufferSmartPtr(tmpBuffer, DH_KEY_SIZE_BYTES);
+        return tmpBufferSmartPtr;
+    }
+
     // get my certificate
     ByteSmartPtr certBufferSmartPtr = Utils::readBufferFromFile(_localCertFilename);
     if (certBufferSmartPtr == NULL)
