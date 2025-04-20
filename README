@@ -1,25 +1,3 @@
-Setup:
-sudo apt install libmbedtls-dev
-
-=== Tests ===
-Run tests:
-(make -C crypto_test clean && make -C crypto_test) && make clean && make && echo ===== START ===== && cd crypto_test/ && ./crypto_test && cd ..
-
-Seperated Compile and run:
-(make -C crypto_test clean && make -C crypto_test) && make clean && make
-cd crypto_test/ && ./crypto_test && cd ..
-
-=== Client Server ===
-Run Server:
-./udp_party -port 60000 -key alice.key -pwd alice -cert alice.crt -root rootCA.crt -peer Bob.com
-
-Run Client:
-./udp_party -ip 127.0.0.1 -port 60000 -key bob.key -pwd bobkey -cert bob.crt -root rootCA.crt -peer Alice.com
-
-Compilation:
-make clean && make
-
-
 === Certificates ===
 Alice:
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -aes256 -pass pass:alice -out alice.key
@@ -31,8 +9,33 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -aes256 -pass pass:
 openssl req -new -key bob.key -passin pass:bobkey -sha384 -subj "/CN=Bob.com" -out bob.csr
 openssl x509 -req -in bob.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -sha384 -days 3650 -out bob.crt -set_serial 03
 
+
+=== Setup ===
+sudo apt install libmbedtls-dev
+
+
+=== Crypto Tests ===
+Run tests:
+(make -C crypto_test clean && make -C crypto_test) && make clean && make && echo ===== START ===== && cd crypto_test/ && ./crypto_test && cd ..
+
+Seperated Compile and run:
+(make -C crypto_test clean && make -C crypto_test) && make clean && make
+cd crypto_test/ && ./crypto_test && cd ..
+
+
+=== Client Server ===
+Run Server:
+./udp_party -port 60000 -key alice.key -pwd alice -cert alice.crt -root rootCA.crt -peer Bob.com
+With compilation:
+make clean && make && echo ===== START ===== && ./udp_party -port 60000 -key alice.key -pwd alice -cert alice.crt -root rootCA.crt -peer Bob.com
+
+Run Client:
+./udp_party -ip 127.0.0.1 -port 60000 -key bob.key -pwd bobkey -cert bob.crt -root rootCA.crt -peer Alice.com
+
+Compilation:
+make clean && make
+
+
 === Todo ===
 1. Fix salt to be non-const
-2. client session: send SIGMA message 3 part
-3. server session: verify SIGMA message 3
-4. session: deriveSessionKey
+2. session: deriveSessionKey

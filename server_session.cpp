@@ -219,7 +219,6 @@ Session::ReceiveResult ServerSession::receiveMessage(BYTE* buffer, size_t buffer
                 {
                     BYTE* pPayload = buffer + sizeof(MessageHeader);
                     // here we need to verify SIGMA message 3
-					/*
                     if (!pSession->verifySigmaMessage(3, pPayload, (size_t)header->payloadSize))
                     {
                         printf("Session crypto error, closing session %d\n", pSession->_sessionId);
@@ -228,8 +227,7 @@ Session::ReceiveResult ServerSession::receiveMessage(BYTE* buffer, size_t buffer
                         _activeSessions.erase(header->sessionId);
                         return RR_SESSION_CLOSED;
                     }
-					*/
-
+					
                     // now we will calculate the session key
                     pSession->deriveSessionKey();
                     pSession->_state = DATA_SESSION_MESSAGE;
