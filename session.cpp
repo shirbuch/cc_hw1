@@ -40,6 +40,9 @@ Session::Session(const char* keyFilename, char* password, const char* certFilena
     _expectedRemoteIdentityString = peerIdentity;
     memset(_sessionKey, 0, SYMMETRIC_KEY_SIZE_BYTES);
     _dhContext = NULL;
+    memset(_localDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
+    memset(_remoteDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
+    memset(_sharedDhSecretBuffer, 0, DH_KEY_SIZE_BYTES);
 
     _state = INITIALIZED_SESSION_STATE;
 }
@@ -65,6 +68,9 @@ Session::Session(const Session& other)
     _expectedRemoteIdentityString = other._expectedRemoteIdentityString;
     memset(_sessionKey, 0, SYMMETRIC_KEY_SIZE_BYTES);
     _dhContext = NULL;
+    memset(_localDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
+    memset(_remoteDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
+    memset(_sharedDhSecretBuffer, 0, DH_KEY_SIZE_BYTES);
 
     _state = INITIALIZED_SESSION_STATE;
 }
@@ -217,16 +223,6 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
             cleanDhData();
             return NULL;
         }
-        
-        // todo: deleteme. tmp remote public key to return to continue session until recieving the real one
-        DhContext* dhRemoteContext = NULL;
-        if (!CryptoWrapper::startDh(&dhRemoteContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES))
-        {
-            printf("dhRemoteContext: prepareDhMessage #%d - Error during startDh\n", messageType);
-            cleanDhData();
-            return NULL;
-        }
-        
         if (!CryptoWrapper::getDhSharedSecret(_dhContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES))
         {
             printf("prepareDhMessage #%d - Error during getDhSharedSecret\n", messageType);
