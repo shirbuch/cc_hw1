@@ -198,7 +198,21 @@ void Session::deriveSessionKey()
         exit(0);
     }
     
-    // ...
+    // Use a different salt value than MAC key, but still deterministic based on session ID
+    // Adding 1 to session ID provides separation between MAC and encryption keys
+    BYTE salt[32];
+    memset(salt, _sessionId + 1, sizeof(salt));
+    
+    // Derive the session key using HKDF
+    if (!CryptoWrapper::deriveKey_HKDF_SHA256(
+            salt, 32,
+            _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES,
+            (BYTE*)keyDerivationContext, strlen(keyDerivationContext),
+            _sessionKey, SYMMETRIC_KEY_SIZE_BYTES))
+    {
+        printf("deriveSessionKey failed - Error deriving session key\n");
+        cleanDhData();
+    }
 }
 
 

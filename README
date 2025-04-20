@@ -37,4 +37,5 @@ make clean && make
 
 
 === Todo ===
-1. session: deriveSessionKey
+1. session prepareEncryptedMessage
+2. session decryptMessage
