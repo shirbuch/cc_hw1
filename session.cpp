@@ -39,6 +39,7 @@ Session::Session(const char* keyFilename, char* password, const char* certFilena
     _rootCaCertFilename = rootCaFilename;
     _expectedRemoteIdentityString = peerIdentity;
     memset(_sessionKey, 0, SYMMETRIC_KEY_SIZE_BYTES);
+    _dhContext = NULL;
 
     _state = INITIALIZED_SESSION_STATE;
 }
@@ -63,6 +64,7 @@ Session::Session(const Session& other)
     _rootCaCertFilename = other._rootCaCertFilename;
     _expectedRemoteIdentityString = other._expectedRemoteIdentityString;
     memset(_sessionKey, 0, SYMMETRIC_KEY_SIZE_BYTES);
+    _dhContext = NULL;
 
     _state = INITIALIZED_SESSION_STATE;
 }
@@ -159,7 +161,7 @@ bool Session::sendMessageInternal(unsigned int type, const BYTE* message, size_t
 
 void Session::cleanDhData()
 {
-    // ...
+	CryptoWrapper::cleanDhContext(&_dhContext);
 }
 
 

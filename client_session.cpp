@@ -13,9 +13,14 @@ ClientSession::ClientSession(unsigned int remotePort, const char* remoteIpAddres
 
     setRemoteAddress(remoteIpAddress, remotePort);
 
-    // Perhaps we can use the first message as Sigma message #1?
-    BYTE dummy[DH_KEY_SIZE_BYTES];
-    if (!sendMessageInternal(HELLO_SESSION_MESSAGE, dummy, DH_KEY_SIZE_BYTES))
+    // Use the first message as Sigma message #1
+    if (!CryptoWrapper::startDh(&_dhContext, _localDhPublicKeyBuffer, DH_KEY_SIZE_BYTES))
+    {
+        _state = UNINITIALIZED_SESSION_STATE;
+        cleanDhData();
+        return;
+    }
+    if (!sendMessageInternal(HELLO_SESSION_MESSAGE, _localDhPublicKeyBuffer, DH_KEY_SIZE_BYTES))
     {
         _state = UNINITIALIZED_SESSION_STATE;
         cleanDhData();
