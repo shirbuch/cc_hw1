@@ -218,6 +218,22 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
             return NULL;
         }
         
+        // todo: deleteme. tmp remote public key to return to continue session until recieving the real one
+        DhContext* dhRemoteContext = NULL;
+        if (!CryptoWrapper::startDh(&dhRemoteContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES))
+        {
+            printf("dhRemoteContext: prepareDhMessage #%d - Error during startDh\n", messageType);
+            cleanDhData();
+            return NULL;
+        }
+        
+        if (!CryptoWrapper::getDhSharedSecret(_dhContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES))
+        {
+            printf("prepareDhMessage #%d - Error during getDhSharedSecret\n", messageType);
+            cleanDhData();
+            return NULL;
+        }
+        
         // todo: deleteme. tmp buffer to return to continue session until fixing next part 
         BYTE* tmpBuffer = (BYTE*)Utils::allocateBuffer(DH_KEY_SIZE_BYTES);
         ByteSmartPtr tmpBufferSmartPtr(tmpBuffer, DH_KEY_SIZE_BYTES);
