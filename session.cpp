@@ -179,7 +179,17 @@ void Session::deriveMacKey(BYTE* macKeyBuffer)
         exit(0);
     }
     
-    // ...
+    BYTE salt[32];
+	if (!Utils::generateRandom(salt, 32))
+    {
+        printf("deriveMacKey failed - Error generating random salt\n");
+        cleanDhData();
+    }
+	if (!CryptoWrapper::deriveKey_HKDF_SHA256(salt, 32, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES, NULL, 0, macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES))
+    {
+        printf("deriveMacKey failed - Error deriving MAC key\n");
+        cleanDhData();
+    }
 }
 
 
@@ -262,10 +272,18 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
         cleanDhData();
         return NULL;
     }
-    
-    // Now we will calculate the MAC over my certiicate
+
+    // Now we will calculate the MAC over my certificate
+    BYTE macKeyBuffer[SYMMETRIC_KEY_SIZE_BYTES];
+    deriveMacKey(macKeyBuffer);
     BYTE calculatedMac[HMAC_SIZE_BYTES];
-    // ...
+	if (!CryptoWrapper::hmac_SHA256((const BYTE*)macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES, (BYTE*)certBufferSmartPtr, certBufferSmartPtr.size(), calculatedMac, HMAC_SIZE_BYTES))
+    {
+        printf("prepareDhMessage #%d failed - Error calculating MAC\n", messageType);
+        cleanDhData();
+        return NULL;
+    }
+	Utils::secureCleanMemory(macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES);
 
     // pack all of the parts together
     ByteSmartPtr messageToSend = packMessageParts(4, _localDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, (BYTE*)certBufferSmartPtr, certBufferSmartPtr.size(), signature, SIGNATURE_SIZE_BYTES, calculatedMac, HMAC_SIZE_BYTES);
