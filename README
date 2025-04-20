@@ -14,6 +14,10 @@ openssl x509 -req -in bob.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -
 sudo apt install libmbedtls-dev
 
 
+=== Clean Files ===
+find . -type f -name '*:Zone.Identifier' -delete
+make clean && make -C crypto_test clean 
+
 === Crypto Tests ===
 Run tests:
 (make -C crypto_test clean && make -C crypto_test) && make clean && make && echo ===== START ===== && cd crypto_test/ && ./crypto_test && cd ..
@@ -37,5 +41,4 @@ make clean && make
 
 
 === Todo ===
-1. session prepareEncryptedMessage
-2. session decryptMessage
+1. verify that public key in certificate is the same as the one we received

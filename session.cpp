@@ -286,7 +286,6 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
 
     // Now we will calculate the MAC over my certificate
     BYTE macKeyBuffer[SYMMETRIC_KEY_SIZE_BYTES];
-    // todo: same salt in both sides
     deriveMacKey(macKeyBuffer);
     BYTE calculatedMac[HMAC_SIZE_BYTES];
 	if (!CryptoWrapper::hmac_SHA256((const BYTE*)macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES, (BYTE*)certBufferSmartPtr, certBufferSmartPtr.size(), calculatedMac, HMAC_SIZE_BYTES))
@@ -391,7 +390,6 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
 
     // Now we will verify the MAC over the certificate
     BYTE macKeyBuffer[SYMMETRIC_KEY_SIZE_BYTES];
-    // todo: same salt in both sides
     deriveMacKey(macKeyBuffer);
     BYTE calculatedMac[HMAC_SIZE_BYTES];
 	if (!CryptoWrapper::hmac_SHA256((const BYTE*)macKeyBuffer, SYMMETRIC_KEY_SIZE_BYTES, inCertBufferSmartPtrPart.part, inCertBufferSmartPtrPart.partSize, calculatedMac, HMAC_SIZE_BYTES))
@@ -422,32 +420,48 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
 
 ByteSmartPtr Session::prepareEncryptedMessage(unsigned int messageType, const BYTE* message, size_t messageSize)
 {
-    // we will do a plain copy for now
-    size_t encryptedMessageSize = messageSize;
-    BYTE* ciphertext = (BYTE*)Utils::allocateBuffer(encryptedMessageSize);
+    size_t ciphertextSize = CryptoWrapper::getCiphertextSizeAES_GCM256(messageSize); // For AES-GCM the ciphertext is the same size as the plaintext
+    if (ciphertextSize == 0)
+    {
+        printf("prepareEncryptedMessage - Error calculating ciphertext size\n");
+        return NULL;
+    }
+    
+    BYTE* ciphertext = (BYTE*)Utils::allocateBuffer(ciphertextSize);
     if (ciphertext == NULL)
     {
         return NULL;
     }
 
-    memcpy_s(ciphertext, encryptedMessageSize, message, messageSize);
+    if (!CryptoWrapper::encryptAES_GCM256(_sessionKey, SYMMETRIC_KEY_SIZE_BYTES,	// key
+		(const BYTE*)message, messageSize,							// plaintext
+		(const BYTE*)(&ciphertextSize), sizeof(ciphertextSize),					// aad
+		(BYTE*)ciphertext, MESSAGE_BUFFER_SIZE_BYTES, &ciphertextSize))	// ciphertext buffer - output
+	{
+		printf("Error during encryptAES_GCM256!\n");
+		return NULL;
+	}
 
-    ByteSmartPtr result(ciphertext, encryptedMessageSize);
+    ByteSmartPtr result(ciphertext, ciphertextSize);
     return result;
 }
 
 
 bool Session::decryptMessage(MessageHeader* header, BYTE* buffer, size_t* pPlaintextSize)
-{
-    // we will do a plain copy for now
-    size_t ciphertextSize = header->payloadSize;
-    size_t plaintextSize = ciphertextSize;
-    
+{ 
+    size_t ciphertextSize = header->payloadSize; // For AES-GCM the ciphertext is the same size as the plaintext
+    char plaintextBuffer[MESSAGE_BUFFER_SIZE_BYTES];
 
-    if (pPlaintextSize != NULL)
-    {
-        *pPlaintextSize = plaintextSize;
-    }
+    if (!CryptoWrapper::decryptAES_GCM256(_sessionKey, SYMMETRIC_KEY_SIZE_BYTES,	// key
+		(BYTE*)buffer, ciphertextSize,								// ciphertext
+		(const BYTE*)(&ciphertextSize), sizeof(ciphertextSize),				// aad - must use the same AAD
+		(BYTE*)plaintextBuffer, MESSAGE_BUFFER_SIZE_BYTES, pPlaintextSize))						// plaintextBuffer - output
+	{
+		printf("Error during decryptAES_GCM256!\n");
+		return false;
+	}
+
+    memcpy_s(buffer, MESSAGE_BUFFER_SIZE_BYTES, plaintextBuffer, *pPlaintextSize);
 
     return true;
 }
