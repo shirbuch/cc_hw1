@@ -16,3 +16,15 @@ Run Client Server:
 
 Compilation:
 make clean && make
+
+
+=== Certificates ===
+Alice:
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -aes256 -pass pass:alice -out alice.key
+openssl req -new -key alice.key -passin pass:alice -sha384 -subj "/CN=Alice.com" -out alice.csr
+openssl x509 -req -in alice.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -sha384 -days 3650 -out alice.crt -set_serial 02
+
+Bob:
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -aes256 -pass pass:bobkey -out bob.key
+openssl req -new -key bob.key -passin pass:bobkey -sha384 -subj "/CN=Bob.com" -out bob.csr
+openssl x509 -req -in bob.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -sha384 -days 3650 -out bob.crt -set_serial 03

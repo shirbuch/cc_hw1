@@ -71,7 +71,7 @@ Session::Session(const Session& other)
     memset(_localDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
     memset(_remoteDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
     memset(_sharedDhSecretBuffer, 0, DH_KEY_SIZE_BYTES);
-
+    
     _state = INITIALIZED_SESSION_STATE;
 }
 
@@ -229,11 +229,6 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
             cleanDhData();
             return NULL;
         }
-        
-        // todo: deleteme. tmp buffer to return to continue session until fixing next part 
-        BYTE* tmpBuffer = (BYTE*)Utils::allocateBuffer(DH_KEY_SIZE_BYTES);
-        ByteSmartPtr tmpBufferSmartPtr(tmpBuffer, DH_KEY_SIZE_BYTES);
-        return tmpBufferSmartPtr;
     }
 
     // get my certificate
