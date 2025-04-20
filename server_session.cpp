@@ -114,6 +114,8 @@ Session::ReceiveResult ServerSession::receiveMessage(BYTE* buffer, size_t buffer
         memcpy_s(&(newSession->_remoteAddress), sizeof(struct sockaddr_in), &remoteAddr, remoteAddrSize);
 
         // Prepare DH message 2
+        BYTE* pPayload = buffer + sizeof(MessageHeader);
+        memcpy_s(&_remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, &pPayload, DH_KEY_SIZE_BYTES);
         ByteSmartPtr message2 = newSession->prepareSigmaMessage(2);
         if (message2 == NULL)
         {
