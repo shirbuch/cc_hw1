@@ -42,14 +42,13 @@ ClientSession::ClientSession(unsigned int remotePort, const char* remoteIpAddres
     }
 
     // here we need to verify the DH message 2 part
-	/*
     if (!verifySigmaMessage(2, pPayload, (size_t)payloadSize))
     {
         _state = UNINITIALIZED_SESSION_STATE;
         cleanDhData();
+        printf("Session crypto error - verifySigmaMessage(2), closing session %d\n", _sessionId);
         return;
     }
-	*/
 
     // send SIGMA message 3 part
     /*

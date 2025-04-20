@@ -10,8 +10,10 @@ Seperated Compile and run:
 cd crypto_test/ && ./crypto_test && cd ..
 
 === Client Server ===
-Run Client Server:
+Run Server:
 ./udp_party -port 60000 -key alice.key -pwd alice -cert alice.crt -root rootCA.crt -peer Bob.com
+
+Run Client:
 ./udp_party -ip 127.0.0.1 -port 60000 -key bob.key -pwd bobkey -cert bob.crt -root rootCA.crt -peer Alice.com
 
 Compilation:

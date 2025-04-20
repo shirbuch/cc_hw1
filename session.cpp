@@ -314,10 +314,35 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
         return false;
     }
 
-    // ...
+    const BYTE* inRemoteDhPublicKeyBuffer = parts[0].part;
+    const MessagePart inCertBufferSmartPtrPart = parts[1];
+    const BYTE* inSignature = parts[2].part;
+    const BYTE* inCalculatedMac = parts[3].part;
+    
+    // Get shared DH key
+    if (messageType == 2)
+    {
+        memcpy_s(&_remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, &inRemoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES);
+        if (!CryptoWrapper::getDhSharedSecret(_dhContext, _remoteDhPublicKeyBuffer, DH_KEY_SIZE_BYTES, _sharedDhSecretBuffer, DH_KEY_SIZE_BYTES))
+        {
+            printf("prepareDhMessage #%d - Error during getDhSharedSecret\n", messageType);
+            cleanDhData();
+            return false;
+        }
+    }
 
     // we will now verify if the received certificate belongs to the expected remote entity
-    // ...
+	ByteSmartPtr cAcertBufferSmartPtr = Utils::readBufferFromFile(_rootCaCertFilename);
+	if (cAcertBufferSmartPtr == NULL)
+	{
+		printf("Error reading certificate filename - %s\n", _rootCaCertFilename);
+		return false;
+	}
+	if (!CryptoWrapper::checkCertificate(cAcertBufferSmartPtr, cAcertBufferSmartPtr.size(), inCertBufferSmartPtrPart.part, inCertBufferSmartPtrPart.partSize, _expectedRemoteIdentityString))
+    {
+        printf("verifySigmaMessage #%d failed - Error checking certificate\n", messageType);
+        return false;
+    }
 
     // now we will verify if the signature over the concatenated public keys is ok
     // ...
@@ -331,6 +356,9 @@ bool Session::verifySigmaMessage(unsigned int messageType, const BYTE* pPayload,
 
     // Now we will verify the MAC over the certificate
     // ...
+    
+    // todo: deleteme after implementing checks.
+    return true;
     
     return false;
 }
