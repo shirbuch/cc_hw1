@@ -71,7 +71,7 @@ Session::Session(const Session& other)
     memset(_localDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
     memset(_remoteDhPublicKeyBuffer, 0, DH_KEY_SIZE_BYTES);
     memset(_sharedDhSecretBuffer, 0, DH_KEY_SIZE_BYTES);
-    
+
     _state = INITIALIZED_SESSION_STATE;
 }
 
@@ -256,8 +256,13 @@ ByteSmartPtr Session::prepareSigmaMessage(unsigned int messageType)
         return NULL;
     }
     BYTE signature[SIGNATURE_SIZE_BYTES];
-    // ...
-
+	if (!CryptoWrapper::signMessageRsa3072Pss((const BYTE*)conacatenatedPublicKeysSmartPtr, conacatenatedPublicKeysSmartPtr.size(), privateKeyContext, signature, SIGNATURE_SIZE_BYTES))
+    {
+        printf("prepareDhMessage #%d failed - Error signing message\n", messageType);
+        cleanDhData();
+        return NULL;
+    }
+    
     // Now we will calculate the MAC over my certiicate
     BYTE calculatedMac[HMAC_SIZE_BYTES];
     // ...
